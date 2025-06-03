@@ -21,5 +21,13 @@ Router.route('/:id')
     cardValidation.update,
     cardController.update
   )
+  .delete(authMiddleware.isAuthorized, cardController.deleteCard)
+
+// API for attachments
+Router.route('/:cardId/attachments')
+  .post(authMiddleware.isAuthorized, multerUploadMiddleware.uploadAnyFile.single('attachment'), cardController.uploadAttachment)
+
+Router.route('/:cardId/attachments/:attachmentId')
+  .delete(authMiddleware.isAuthorized, cardController.deleteAttachment)
 
 export const cardRoute = Router

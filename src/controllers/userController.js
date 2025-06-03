@@ -14,13 +14,6 @@ const createNew = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
-const verifyAccount = async (req, res, next) => {
-  try {
-    const result = await userService.verifyAccount(req.body)
-    res.status(StatusCodes.OK).json(result)
-  } catch (error) { next(error) }
-}
-
 const login = async (req, res, next) => {
   try {
     const result = await userService.login(req.body)
@@ -87,11 +80,18 @@ const update = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
+const sendOTPVerifyEmail = async (req, res, next) => {
+  try {
+    const result = await userService.sendOTPVerifyEmail(req.body.email)
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
+}
+
 export const userController = {
   createNew,
-  verifyAccount,
   login,
   logout,
   refreshToken,
-  update
+  update,
+  sendOTPVerifyEmail
 }

@@ -16,10 +16,10 @@ cloudinaryV2.config({
 })
 
 // Khởi tạo một cái function để thực hiện upload file lên Cloudinary
-const streamUpload = (fileBuffer, folderName) => {
+const streamUpload = (fileBuffer, folderName, resourceType = 'image') => {
   return new Promise((resolve, reject) => {
     // Tạo một cái luồng stream upload lên cloudinary
-    const stream = cloudinaryV2.uploader.upload_stream({ folder: folderName }, (err, result) => {
+    const stream = cloudinaryV2.uploader.upload_stream({ folder: folderName, resource_type: resourceType }, (err, result) => {
       if (err) reject(err)
       else resolve(result)
     })

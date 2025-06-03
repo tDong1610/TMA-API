@@ -24,7 +24,7 @@ const createNew = async (req, res, next) => {
 const verifyAccount = async (req, res, next) => {
   const correctCondition = Joi.object({
     email: Joi.string().required().pattern(EMAIL_RULE).message(EMAIL_RULE_MESSAGE),
-    token: Joi.string().required()
+    otp: Joi.string().required().length(6).message('OTP must be 6 digits')
   })
 
   try {
@@ -65,9 +65,23 @@ const update = async (req, res, next) => {
   }
 }
 
+const sendOTPVerifyEmail = async (req, res, next) => {
+  const correctCondition = Joi.object({
+    email: Joi.string().required().pattern(EMAIL_RULE).message(EMAIL_RULE_MESSAGE)
+  })
+
+  try {
+    await correctCondition.validateAsync(req.body, { abortEarly: false })
+    next()
+  } catch (error) {
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message))
+  }
+}
+
 export const userValidation = {
   createNew,
   verifyAccount,
   login,
-  update
+  update,
+  sendOTPVerifyEmail
 }

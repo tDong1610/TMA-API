@@ -47,17 +47,29 @@ const createNew = async (req, res, next) => {
 const update = async (req, res, next) => {
   // Lưu ý không dùng hàm required() trong trường hợp Update
   const correctCondition = Joi.object({
-    title: Joi.string().min(3).max(50).trim().strict(),
-    description: Joi.string().min(3).max(255).trim().strict(),
-    // type: Joi.string().valid(BOARD_TYPES.PUBLIC, BOARD_TYPES.PRIVATE),
-    type: Joi.string().valid(...Object.values(BOARD_TYPES)),
+    title: Joi.string().min(3).max(50).trim().strict()
+      .messages({
+        'string.min': 'Tên bảng phải có ít nhất {#limit} ký tự',
+        'string.max': 'Tên bảng không được vượt quá {#limit} ký tự',
+        'string.empty': 'Tên bảng không được để trống'
+      }),
+    description: Joi.string().min(3).max(255).trim().strict()
+      .messages({
+        'string.min': 'Mô tả phải có ít nhất {#limit} ký tự',
+        'string.max': 'Mô tả không được vượt quá {#limit} ký tự',
+        'string.empty': 'Mô tả không được để trống'
+      }),
+    type: Joi.string().valid(...Object.values(BOARD_TYPES))
+      .messages({
+        'any.only': 'Loại bảng không hợp lệ'
+      }),
     columnOrderIds: Joi.array().items(
       Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
     )
   })
 
   try {
-    // Chỉ định abortEarly: false để trường hợp có nhiều lỗi validation thì trả về tất cả lỗi (video 52)
+    // Chỉ định abortEarly: false để trường hợp có nhiều lỗi validation thì trả về tất cả lỗi
     // Đối với trường hợp update, cho phép Unknown để không cần đẩy một số field lên
     await correctCondition.validateAsync(req.body, {
       abortEarly: false,
@@ -93,8 +105,22 @@ const moveCardToDifferentColumn = async (req, res, next) => {
   }
 }
 
+const deleteBoard = async (req, res, next) => {
+  try {
+    const correctCondition = Joi.object({
+      id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+    })
+
+    await correctCondition.validateAsync(req.params, { abortEarly: false })
+    next()
+  } catch (error) {
+    next(new ApiError(StatusCodes.UNPROCESSABLE_ENTITY, new Error(error).message))
+  }
+}
+
 export const boardValidation = {
   createNew,
   update,
-  moveCardToDifferentColumn
+  moveCardToDifferentColumn,
+  deleteBoard
 }

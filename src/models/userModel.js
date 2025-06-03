@@ -24,8 +24,14 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   avatar: Joi.string().default(null),
   role: Joi.string().valid(...Object.values(USER_ROLES)).default(USER_ROLES.CLIENT),
 
-  isActive: Joi.boolean().default(false),
-  verifyToken: Joi.string(),
+  isActive: Joi.boolean().default(true),
+  verifyToken: Joi.string().strip(),
+
+  // Xóa các trường mới cho OTP
+  otp: Joi.string().strip(),
+  otpExpires: Joi.date().timestamp('javascript').default(null).strip(),
+  otpAttempts: Joi.number().default(0).strip(),
+  lastOtpSent: Joi.date().timestamp('javascript').default(null).strip(),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -79,6 +85,55 @@ const update = async (userId, updateData) => {
   } catch (error) { throw new Error(error) }
 }
 
+const updateOTP = async (userId, otp, otpExpires) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          otp,
+          otpExpires,
+          otpAttempts: 0,
+          lastOtpSent: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw error }
+}
+
+const incrementOtpAttempts = async (userId) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { $inc: { otpAttempts: 1 } },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw error }
+}
+
+const verifyUser = async (userId) => {
+  try {
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { 
+        $set: { 
+          isActive: true,
+          otp: null,
+          otpExpires: null,
+          otpAttempts: 0,
+          lastOtpSent: null,
+          updatedAt: new Date()
+        }
+      },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw error }
+}
+
 export const userModel = {
   USER_COLLECTION_NAME,
   USER_COLLECTION_SCHEMA,
@@ -86,5 +141,8 @@ export const userModel = {
   createNew,
   findOneById,
   findOneByEmail,
-  update
+  update,
+  updateOTP,
+  incrementOtpAttempts,
+  verifyUser
 }

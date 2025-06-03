@@ -8,6 +8,16 @@ import { WEBSITE_DOMAIN } from '~/utils/constants'
 import { env } from '~/config/environment'
 import { JwtProvider } from '~/providers/JwtProvider'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import { Resend } from 'resend'
+import { emailService } from './emailService'
+
+// Kiểm tra API key trước khi khởi tạo Resend
+if (!env.RESEND_API_KEY) {
+  console.error('RESEND_API_KEY is not defined in environment variables')
+  process.exit(1)
+}
+
+const resend = new Resend(env.RESEND_API_KEY)
 
 const createNew = async (reqBody) => {
   try {
@@ -18,36 +28,22 @@ const createNew = async (reqBody) => {
     }
 
     // Tạo data để lưu vào Database
-    // nameFromEmail: nếu email là trungquandev@gmail.com thì sẽ lấy được "trungquandev"
     const nameFromEmail = reqBody.email.split('@')[0]
     const newUser = {
       email: reqBody.email,
-      password: bcryptjs.hashSync(reqBody.password, 8), // Tham số thứ hai là độ phức tạp, giá trị càng cao thì băm càng lâu
+      password: bcryptjs.hashSync(reqBody.password, 8),
       username: nameFromEmail,
-      displayName: nameFromEmail, // mặc định để giống username khi user đăng ký mới, về sau làm tính năng update cho user
-      isActive: true,
-      verifyToken: uuidv4()
+      displayName: nameFromEmail,
+      isActive: true // Đặt mặc định là true vì không cần xác thực email
     }
 
     // Thực hiện lưu thông tin user vào Database
     const createdUser = await userModel.createNew(newUser)
     const getNewUser = await userModel.findOneById(createdUser.insertedId)
 
-    // Gửi email cho người dùng xác thực tài khoản (buổi sau...)
-    const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`
-    const customSubject = 'Trello MERN Stack Advanced: Please verify your email before using our services!'
-    const htmlContent = `
-      <h3>Here is your verification link:</h3>
-      <h3>${verificationLink}</h3>
-      <h3>Sincerely,<br/> - Trungquandev - Một Lập Trình Viên - </h3>
-    `
-    // Gọi tới cái Provider gửi mail
-    /**
-     * Update kiến thức: Brevo mới update vụ Whitelist IP tương tự MongoDB Atlas, nếu bạn không gửi được mail thì cần phải config 0.0.0.0 hoặc uncheck cái review IP Address trong dashboard là được nhé.
-     * https://app.brevo.com/security/authorised_ips
-     */
+    // Không cần tạo và gửi OTP nữa
 
-    // return trả về dữ liệu cho phía Controller
+    // Trả về thông tin user
     return pickUser(getNewUser)
   } catch (error) { throw error }
 }
@@ -60,14 +56,27 @@ const verifyAccount = async (reqBody) => {
     // Các bước kiểm tra cần thiết
     if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'Account not found!')
     if (existUser.isActive) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Your account is already active!')
-    if (reqBody.token !== existUser.verifyToken) {
-      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Token is invalid!')
+    
+    // Kiểm tra OTP
+    if (!existUser.otp || !existUser.otpExpires) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'No OTP found for this account!')
+    }
+    
+    // Kiểm tra OTP có hết hạn chưa
+    if (new Date() > existUser.otpExpires) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'OTP has expired!')
+    }
+    
+    // Kiểm tra OTP có đúng không
+    if (reqBody.otp !== existUser.otp) {
+      throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Invalid OTP!')
     }
 
     // Nếu như mọi thứ ok thì chúng ta bắt đầu update lại thông tin của thằng user để verify account
     const updateData = {
       isActive: true,
-      verifyToken: null
+      otp: null,
+      otpExpires: null
     }
     // Thực hiện update thông tin user
     const updatedUser = await userModel.update(existUser._id, updateData)
@@ -83,31 +92,29 @@ const login = async (reqBody) => {
 
     // Các bước kiểm tra cần thiết
     if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'Account not found!')
-    if (!existUser.isActive) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Your account is not active!')
+    
+    // Kiểm tra mật khẩu
     if (!bcryptjs.compareSync(reqBody.password, existUser.password)) {
       throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Your Email or Password is incorrect!')
     }
 
-    /** Nếu mọi thứ ok thì bắt đầu tạo Tokens đăng nhập để trả về cho phía FE */
-    // Tạo thông tin để đính kèm trong JWT Token: bao gồm _id và email của user
+    // Không cần kiểm tra tài khoản đã được xác nhận chưa nữa
+
+    /** Tạo Tokens đăng nhập để trả về cho phía FE */
     const userInfo = { _id: existUser._id, email: existUser.email }
 
-    // Tạo ra 2 loại token, accessToken và refreshToken để trả về cho phía FE
     const accessToken = await JwtProvider.generateToken(
       userInfo,
       env.ACCESS_TOKEN_SECRET_SIGNATURE,
-      // 5 // 5 giây
       env.ACCESS_TOKEN_LIFE
     )
 
     const refreshToken = await JwtProvider.generateToken(
       userInfo,
       env.REFRESH_TOKEN_SECRET_SIGNATURE,
-      // 15 // 15 giây
       env.REFRESH_TOKEN_LIFE
     )
 
-    // Trả về thông tin của user kèm theo 2 cái token vừa tạo ra
     return { accessToken, refreshToken, ...pickUser(existUser) }
   } catch (error) { throw error }
 }
@@ -173,10 +180,29 @@ const update = async (userId, reqBody, userAvatarFile) => {
   } catch (error) { throw error }
 }
 
+const sendOTPVerifyEmail = async (email) => {
+  try {
+    const existUser = await userModel.findOneByEmail(email)
+    if (!existUser) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Account not found!')
+    }
+
+    // Generate a 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000) // OTP expires in 5 minutes
+
+    await userModel.updateOTP(existUser._id, otp, otpExpires)
+    await emailService.sendOTP(email, otp, existUser.username)
+
+    return { message: 'OTP sent successfully.' }
+  } catch (error) { throw error }
+}
+
 export const userService = {
   createNew,
   verifyAccount,
   login,
   refreshToken,
-  update
+  update,
+  sendOTPVerifyEmail
 }

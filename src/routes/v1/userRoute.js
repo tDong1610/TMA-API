@@ -13,9 +13,6 @@ const Router = express.Router()
 Router.route('/register')
   .post(userValidation.createNew, userController.createNew)
 
-Router.route('/verify')
-  .put(userValidation.verifyAccount, userController.verifyAccount)
-
 Router.route('/login')
   .post(userValidation.login, userController.login)
 
@@ -32,5 +29,8 @@ Router.route('/update')
     userValidation.update,
     userController.update
   )
+
+Router.route('/send-otp-verify-email')
+  .post(userValidation.sendOTPVerifyEmail, userController.sendOTPVerifyEmail)
 
 export const userRoute = Router

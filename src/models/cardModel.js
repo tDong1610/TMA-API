@@ -34,6 +34,15 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
     commentedAt: Joi.date().timestamp()
   }).default([]),
 
+  attachments: Joi.array().items({
+    _id: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE).default(() => new ObjectId().toString()),
+    name: Joi.string().required(),
+    url: Joi.string().required(),
+    size: Joi.number().required(),
+    type: Joi.string().required(),
+    uploadedAt: Joi.date().timestamp().default(Date.now)
+  }).default([]),
+
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
   _destroy: Joi.boolean().default(false)
@@ -89,9 +98,25 @@ const update = async (cardId, updateData) => {
   } catch (error) { throw new Error(error) }
 }
 
+const deleteCard = async (cardId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).deleteOne({ _id: new ObjectId(cardId) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
 const deleteManyByColumnId = async (columnId) => {
   try {
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).deleteMany({ columnId: new ObjectId(columnId) })
+    return result
+  } catch (error) { throw new Error(error) }
+}
+
+const deleteManyByBoardId = async (boardId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).deleteMany({
+      boardId: new ObjectId(boardId)
+    })
     return result
   } catch (error) { throw new Error(error) }
 }
@@ -163,14 +188,40 @@ const updateManyComments = async (userInfo) => {
   } catch (error) { throw new Error(error) }
 }
 
+const pushAttachment = async (cardId, attachment) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { $push: { attachments: attachment } },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw new Error(error) }
+}
+
+const pullAttachment = async (cardId, attachmentId) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { $pull: { attachments: { _id: attachmentId } } },
+      { returnDocument: 'after' }
+    )
+    return result.value
+  } catch (error) { throw new Error(error) }
+}
+
 export const cardModel = {
   CARD_COLLECTION_NAME,
   CARD_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   update,
+  deleteCard,
   deleteManyByColumnId,
+  deleteManyByBoardId,
   unshiftNewComment,
   updateMembers,
-  updateManyComments
+  updateManyComments,
+  pushAttachment,
+  pullAttachment
 }

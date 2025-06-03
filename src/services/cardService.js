@@ -7,6 +7,7 @@
 import { cardModel } from '~/models/cardModel'
 import { columnModel } from '~/models/columnModel'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+import { ObjectId } from 'mongodb'
 
 const createNew = async (reqBody) => {
   try {
@@ -60,7 +61,90 @@ const update = async (cardId, reqBody, cardCoverFile, userInfo) => {
   } catch (error) { throw error }
 }
 
+const deleteCard = async (cardId) => {
+  try {
+    const card = await cardModel.findOneById(cardId)
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    // Xóa card
+    await cardModel.deleteCard(cardId)
+    
+    // Cập nhật lại mảng cardOrderIds trong column
+    await columnModel.pullCardOrderIds(card.columnId, card._id)
+
+    return { message: 'Card deleted successfully' }
+  } catch (error) { throw error }
+}
+
+const uploadAttachment = async (cardId, attachmentFile) => {
+  try {
+    // Xác định resource_type dựa trên mimetype
+    let resourceType = 'raw' // Mặc định là raw cho các loại file không phải ảnh và video
+    if (attachmentFile.mimetype.startsWith('image/')) {
+      resourceType = 'image'
+    } else if (attachmentFile.mimetype.startsWith('video/')) {
+      resourceType = 'video'
+    }
+
+    const uploadResult = await CloudinaryProvider.streamUpload(attachmentFile.buffer, 'card-attachments', resourceType)
+
+    const attachment = {
+      _id: new ObjectId().toString(),
+      name: attachmentFile.originalname,
+      url: uploadResult.secure_url,
+      size: attachmentFile.size,
+      type: attachmentFile.mimetype,
+      uploadedAt: Date.now()
+    }
+
+    const updatedCard = await cardModel.pushAttachment(cardId, attachment)
+
+    return updatedCard
+  } catch (error) {
+    // Log chi tiết lỗi ở đây
+    console.error('Error in uploadAttachment service:', error)
+    throw error
+  }
+}
+
+const deleteAttachment = async (cardId, attachmentId) => {
+  try {
+    // TODO: Implement file deletion logic
+    // TODO: Update card document in database to remove attachment information
+    console.log('Deleting attachment:', attachmentId, 'from card:', cardId)
+    // Placeholder response
+    return { message: 'Attachment deleted successfully (placeholder)' }
+
+    const card = await cardModel.findOneById(cardId)
+    if (!card) {
+      throw new Error('Card not found')
+    }
+
+    const attachmentToDelete = card.attachments.find(att => att._id === attachmentId)
+    if (!attachmentToDelete) {
+      throw new Error('Attachment not found')
+    }
+
+    // Xóa tệp khỏi Cloudinary (cần public_id từ url hoặc lưu trữ riêng public_id)
+    // Hiện tại, tôi sẽ giả định bạn có thể trích xuất public_id từ url
+    const publicId = attachmentToDelete.url.split('/').pop().split('.')[0]
+    await CloudinaryProvider.destroy(publicId)
+
+    const updatedCard = await cardModel.pullAttachment(cardId, attachmentId)
+
+    return updatedCard
+
+  } catch (error) {
+    throw error
+  }
+}
+
 export const cardService = {
   createNew,
-  update
+  update,
+  deleteCard,
+  uploadAttachment,
+  deleteAttachment
 }

@@ -26,4 +26,9 @@ const upload = multer({
   fileFilter: customFileFilter
 })
 
-export const multerUploadMiddleware = { upload }
+// Khởi tạo function upload cho phép mọi loại file (dùng cho attachments)
+const uploadAnyFile = multer({
+  limits: { fileSize: LIMIT_COMMON_FILE_SIZE }
+})
+
+export const multerUploadMiddleware = { upload, uploadAnyFile }
