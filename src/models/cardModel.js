@@ -17,11 +17,11 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
   columnId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   title: Joi.string().required().min(3).max(50).trim().strict(),
-  description: Joi.string().required().min(3).max(256).trim().strict(),
-  fileName: Joi.string().required().min(1).max(100).trim().strict(),
-  fileFormat: Joi.string().required().valid('docx', 'pdf', 'txt').trim().strict(),
+  description: Joi.string().optional().min(3).max(256).trim().strict(),
+  fileName: Joi.string().optional().min(1).max(100).trim().strict(),
+  fileFormat: Joi.string().optional().valid('docx', 'pdf', 'txt').trim().strict(),
 
-  cover: Joi.string().required().trim().strict(),
+  cover: Joi.string().optional().trim().strict(),
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
@@ -192,11 +192,19 @@ const updateManyComments = async (userInfo) => {
 
 const pushAttachment = async (cardId, attachment) => {
   try {
+    console.log(`[cardModel.pushAttachment] Attempting to push attachment to card ${cardId}. Attachment: ${JSON.stringify(attachment)}`);
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
       { $push: { attachments: attachment } },
       { returnDocument: 'after' }
     )
+    console.log(`[cardModel.pushAttachment] findOneAndUpdate result: ${JSON.stringify(result)}`);
+    // Log số lượng bản ghi đã được modified
+    console.log(`[cardModel.pushAttachment] findOneAndUpdate modifiedCount: ${result?.lastErrorObject?.n || 0}`);
+    if (!result?.value) {
+       console.error(`[cardModel.pushAttachment] Failed to push attachment, findOneAndUpdate returned null/undefined.`);
+       // Có thể throw error hoặc xử lý tùy theo luồng logic mong muốn
+    }
     return result.value
   } catch (error) { throw new Error(error) }
 }

@@ -118,6 +118,10 @@ const deleteAttachment = async (cardId, attachmentId) => {
       throw new Error('Card not found')
     }
 
+    // Thêm log để kiểm tra dữ liệu trước khi tìm kiếm
+    console.log(`[cardService.deleteAttachment] Card attachments: ${JSON.stringify(card.attachments)}`);
+    console.log(`[cardService.deleteAttachment] attachmentId from frontend: ${attachmentId}, type: ${typeof attachmentId}`);
+
     const attachmentToDelete = card.attachments.find(att => att._id === attachmentId)
     if (!attachmentToDelete) {
       throw new Error('Attachment not found')
