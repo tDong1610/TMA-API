@@ -27,10 +27,9 @@ const validateBeforeCreate = async (data) => {
 const createNew = async (data) => {
   try {
     const validData = await validateBeforeCreate(data)
-    // Convert boardId and createdBy to ObjectId
+    // Convert createdBy to ObjectId, keep boardId as string
     const insertData = {
       ...validData,
-      boardId: new ObjectId(validData.boardId),
       createdBy: new ObjectId(validData.createdBy)
     }
     const createdTemplate = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).insertOne(insertData)
@@ -99,6 +98,20 @@ const deleteOneById = async (id) => {
   }
 }
 
+const deleteOneByBoardId = async (boardId) => {
+  try {
+    console.log(`[templateModel.deleteOneByBoardId] Attempting to delete document with boardId: ${boardId}`);
+    const result = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).deleteOne({
+      boardId: boardId // Tìm theo trường boardId (string)
+    });
+    console.log(`[templateModel.deleteOneByBoardId] deleteOne result: ${JSON.stringify(result)}`);
+    return result;
+  } catch (error) {
+    console.error(`[templateModel.deleteOneByBoardId] Error deleting document with boardId ${boardId}:`, error);
+    throw new Error(error);
+  }
+};
+
 export const templateModel = {
   TEMPLATE_COLLECTION_NAME,
   TEMPLATE_COLLECTION_SCHEMA,
@@ -107,5 +120,6 @@ export const templateModel = {
   findOneById,
   findManyByIds,
   update,
-  deleteOneById
+  deleteOneById,
+  deleteOneByBoardId
 } 

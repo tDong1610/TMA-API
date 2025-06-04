@@ -126,17 +126,23 @@ const deleteBoard = async (req, res, next) => {
     const boardId = req.params.id
     const userId = req.jwtDecoded._id
 
-    // Xóa board khỏi templates nếu có
-    try {
-      await deleteTemplateService(boardId, userId)
-    } catch (error) {
-      // Nếu template không tồn tại thì bỏ qua lỗi
-      if (error.statusCode !== StatusCodes.NOT_FOUND) {
-        throw error
+    // Lấy thông tin chi tiết của board để kiểm tra type
+    const board = await boardService.getDetails(userId, boardId);
+
+    // Chỉ xóa template nếu board có type là 'public'
+    if (board && board.type === 'public') {
+      // Xóa board khỏi templates nếu có
+      try {
+        await deleteTemplateService(boardId, userId)
+      } catch (error) {
+        // Nếu template không tồn tại thì bỏ qua lỗi
+        if (error.statusCode !== StatusCodes.NOT_FOUND) {
+          throw error
+        }
       }
     }
 
-    // Xóa board
+    // Xóa board (luôn luôn thực hiện)
     const result = await boardService.deleteBoard(boardId)
     res.status(StatusCodes.OK).json(result)
   } catch (error) {

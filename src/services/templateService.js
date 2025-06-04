@@ -93,9 +93,9 @@ const deleteTemplateService = async (id, userId) => {
   try {
     console.log(`[deleteTemplateService] Attempting to delete template with ID: ${id} for user: ${userId}`);
 
-    // Attempt to delete template document from templates collection
-    const deleteResult = await templateModel.deleteOneById(id);
-    console.log(`[deleteTemplateService] deleteOneById result: ${JSON.stringify(deleteResult)}`);
+    // Attempt to delete template document from templates collection by boardId
+    const deleteResult = await templateModel.deleteOneByBoardId(id);
+    console.log(`[deleteTemplateService] deleteOneByBoardId result: ${JSON.stringify(deleteResult)}`);
 
     // We still attempt to remove the template id from the user's list
     console.log(`[deleteTemplateService] Attempting to remove template ID ${id} from user ${userId} list.`);
