@@ -67,13 +67,22 @@ const update = async (req, res, next) => {
 
     // Nếu đang chuyển từ private sang public
     if (updateData.type === 'public') {
+      // Chuẩn bị dữ liệu cho template, loại bỏ type và đảm bảo boardId, cover đúng định dạng
+      const templateData = {
+        ...updateData,
+        boardId: boardId, // Sử dụng boardId từ params
+        // Cung cấp giá trị hợp lệ cho cover (có thể lấy từ updateData hoặc mặc định)
+        // Sử dụng cover từ updateData nếu có, nếu không dùng mặc định
+        cover: updateData.cover || 'https://placehold.co/500x300/png' , // TODO: Cần xử lý cover thực tế sau
+        createdBy: userId
+      };
+      // Xóa các trường không cần thiết
+      delete templateData.type;
+      // delete templateData._id; // Không cần xóa _id ở đây vì nó không được truyền vào createNew
+
       // Kiểm tra xem board đã tồn tại trong templates chưa
       try {
-        await createTemplateService({
-          ...updateData,
-          _id: boardId,
-          createdBy: userId
-        })
+        await createTemplateService(templateData) // Truyền dữ liệu đã chuẩn bị
       } catch (error) {
         // Nếu template đã tồn tại thì bỏ qua lỗi
         if (error.statusCode !== StatusCodes.CONFLICT) {
