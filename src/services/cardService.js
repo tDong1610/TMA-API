@@ -111,11 +111,7 @@ const uploadAttachment = async (cardId, attachmentFile) => {
 
 const deleteAttachment = async (cardId, attachmentId) => {
   try {
-    // TODO: Implement file deletion logic
-    // TODO: Update card document in database to remove attachment information
-    console.log('Deleting attachment:', attachmentId, 'from card:', cardId)
-    // Placeholder response
-    return { message: 'Attachment deleted successfully (placeholder)' }
+    console.log(`[cardService.deleteAttachment] Attempting to delete attachment ${attachmentId} from card ${cardId}`);
 
     const card = await cardModel.findOneById(cardId)
     if (!card) {
@@ -127,12 +123,18 @@ const deleteAttachment = async (cardId, attachmentId) => {
       throw new Error('Attachment not found')
     }
 
+    console.log(`[cardService.deleteAttachment] Card attachments before pulling: ${JSON.stringify(card.attachments)}`);
+    console.log(`[cardService.deleteAttachment] Attachment ID to pull: ${attachmentId}`);
+
     // Xóa tệp khỏi Cloudinary (cần public_id từ url hoặc lưu trữ riêng public_id)
     // Hiện tại, tôi sẽ giả định bạn có thể trích xuất public_id từ url
     const publicId = attachmentToDelete.url.split('/').pop().split('.')[0]
-    await CloudinaryProvider.destroy(publicId)
+    // Tạm thời bỏ qua xóa Cloudinary để tập trung vào xóa khỏi DB
+    // await CloudinaryProvider.destroy(publicId)
 
+    console.log(`[cardService.deleteAttachment] Calling cardModel.pullAttachment for card ${cardId}, attachment ${attachmentId}`);
     const updatedCard = await cardModel.pullAttachment(cardId, attachmentId)
+    console.log(`[cardService.deleteAttachment] Result from pullAttachment: ${JSON.stringify(updatedCard)}`);
 
     return updatedCard
 

@@ -39,7 +39,7 @@ const createNew = async (data) => {
 
 const getAll = async () => {
   try {
-    const templates = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).find().toArray();
+    const templates = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).find({ _destroy: false }).toArray();
     return templates;
   } catch (error) { throw new Error(error) }
 }
@@ -51,6 +51,18 @@ const findOneById = async (id) => {
       _destroy: false
     })
     return result
+  } catch (error) { throw new Error(error) }
+}
+
+const findOneByBoardId = async (boardId) => {
+  try {
+    console.log(`[templateModel.findOneByBoardId] Searching for boardId: ${boardId}, type: ${typeof boardId}`);
+    const result = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).findOne({
+      boardId: boardId, // Tìm theo trường boardId (string)
+      _destroy: false
+    });
+    console.log(`[templateModel.findOneByBoardId] Database query result: ${JSON.stringify(result)}`);
+    return result;
   } catch (error) { throw new Error(error) }
 }
 
@@ -72,7 +84,6 @@ const update = async (id, data) => {
     delete updateData._id
 
     // If boardId or createdBy is being updated, convert to ObjectId
-    if (updateData.boardId) updateData.boardId = new ObjectId(updateData.boardId)
     if (updateData.createdBy) updateData.createdBy = new ObjectId(updateData.createdBy)
 
     const result = await GET_DB().collection(TEMPLATE_COLLECTION_NAME).findOneAndUpdate(
@@ -118,6 +129,7 @@ export const templateModel = {
   createNew,
   getAll,
   findOneById,
+  findOneByBoardId,
   findManyByIds,
   update,
   deleteOneById,

@@ -17,9 +17,11 @@ const CARD_COLLECTION_SCHEMA = Joi.object({
   columnId: Joi.string().required().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE),
 
   title: Joi.string().required().min(3).max(50).trim().strict(),
-  description: Joi.string().optional(),
+  description: Joi.string().required().min(3).max(256).trim().strict(),
+  fileName: Joi.string().required().min(1).max(100).trim().strict(),
+  fileFormat: Joi.string().required().valid('docx', 'pdf', 'txt').trim().strict(),
 
-  cover: Joi.string().default(null),
+  cover: Joi.string().required().trim().strict(),
   memberIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
@@ -201,11 +203,13 @@ const pushAttachment = async (cardId, attachment) => {
 
 const pullAttachment = async (cardId, attachmentId) => {
   try {
+    console.log(`[cardModel.pullAttachment] Attempting to pull attachment ${attachmentId} from card ${cardId}`);
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
-      { $pull: { attachments: { _id: attachmentId } } },
+      { $pull: { attachments: { _id: new ObjectId(attachmentId) } } },
       { returnDocument: 'after' }
     )
+    console.log(`[cardModel.pullAttachment] findOneAndUpdate result: ${JSON.stringify(result)}`);
     return result.value
   } catch (error) { throw new Error(error) }
 }

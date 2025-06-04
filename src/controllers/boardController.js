@@ -6,7 +6,8 @@
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
 import { boardService } from '~/services/boardService'
-import { createTemplateService, deleteTemplateService } from '~/services/templateService'
+import { createTemplateService, deleteTemplateService, updateTemplateService } from '~/services/templateService'
+import { templateModel } from '~/models/templateModel'
 
 
 
@@ -78,16 +79,20 @@ const update = async (req, res, next) => {
       };
       // Xóa các trường không cần thiết
       delete templateData.type;
-      // delete templateData._id; // Không cần xóa _id ở đây vì nó không được truyền vào createNew
 
-      // Kiểm tra xem board đã tồn tại trong templates chưa
-      try {
-        await createTemplateService(templateData) // Truyền dữ liệu đã chuẩn bị
-      } catch (error) {
-        // Nếu template đã tồn tại thì bỏ qua lỗi
-        if (error.statusCode !== StatusCodes.CONFLICT) {
-          throw error
-        }
+      // Kiểm tra xem template đã tồn tại chưa dựa vào boardId
+      console.log(`[boardController.update] Searching for template with boardId: ${boardId}`);
+      const existingTemplate = await templateModel.findOneByBoardId(boardId);
+      console.log(`[boardController.update] Result of findOneByBoardId: ${JSON.stringify(existingTemplate)}`);
+
+      if (existingTemplate) {
+        // Nếu template đã tồn tại, cập nhật template đó
+        console.log(`[boardController.update] Template with boardId ${boardId} found, updating...`);
+        await updateTemplateService(existingTemplate._id.toString(), templateData); // Cập nhật dựa trên _id của template
+      } else {
+        // Nếu template chưa tồn tại, tạo mới
+        console.log(`[boardController.update] Template with boardId ${boardId} not found, creating new...`);
+        await createTemplateService(templateData);
       }
     } else if (updateData.type === 'private') {
       // Nếu đang chuyển từ public sang private thì xóa khỏi templates
