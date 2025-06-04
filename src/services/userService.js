@@ -10,12 +10,6 @@ import { JwtProvider } from '~/providers/JwtProvider'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
 
 
-// Kiểm tra API key trước khi khởi tạo Resend
-if (!env.RESEND_API_KEY) {
-  console.error('RESEND_API_KEY is not defined in environment variables')
-  process.exit(1)
-}
-
 
 const createNew = async (reqBody) => {
   try {
