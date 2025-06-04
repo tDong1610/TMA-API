@@ -206,10 +206,11 @@ const pullAttachment = async (cardId, attachmentId) => {
     console.log(`[cardModel.pullAttachment] Attempting to pull attachment ${attachmentId} from card ${cardId}`);
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
       { _id: new ObjectId(cardId) },
-      { $pull: { attachments: { _id: new ObjectId(attachmentId) } } },
+      { $pull: { attachments: { _id: attachmentId } } },
       { returnDocument: 'after' }
     )
     console.log(`[cardModel.pullAttachment] findOneAndUpdate result: ${JSON.stringify(result)}`);
+    console.log(`[cardModel.pullAttachment] findOneAndUpdate modifiedCount: ${result?.lastErrorObject?.n || 0}`);
     return result.value
   } catch (error) { throw new Error(error) }
 }
