@@ -49,6 +49,12 @@ const getTemplatesService = async (userId) => {
       const templateIds = user.templates;
       console.log('[getTemplatesService] User templates IDs:', templateIds);
 
+      // Check if templateIds is an array, if not treat as empty
+      if (!Array.isArray(templateIds)) {
+        console.log('[getTemplatesService] user.templates is not an array, treating as empty.');
+        return []; // Return empty array if user.templates is undefined or not an array
+      }
+
       // Lấy chi tiết các template dựa trên IDs
       const templates = await templateModel.findManyByIds(templateIds);
       console.log('[getTemplatesService] Templates found:', templates);
