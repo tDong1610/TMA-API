@@ -9,6 +9,7 @@ import { boardService } from '~/services/boardService'
 import { createTemplateService, deleteTemplateService } from '~/services/templateService'
 
 
+
 const createNew = async (req, res, next) => {
   try {
     // console.log('req.body: ', req.body)
@@ -23,14 +24,26 @@ const createNew = async (req, res, next) => {
     // Điều hướng dữ liệu sang tầng Service
     const createdBoard = await boardService.createNew(userId, req.body)
     
+    // Lấy ID của board vừa tạo từ trường _id
+    const newBoardId = createdBoard._id;
+
     // Nếu board có type là public thì lưu vào templates
     if (req.body.type === 'public') {
-      await createTemplateService({
+      // Chuẩn bị dữ liệu cho template, loại bỏ type và đảm bảo boardId, cover đúng định dạng
+      const templateData = {
         ...req.body,
+        boardId: newBoardId.toString(), // Chuyển ObjectId sang string
+        // Cung cấp giá trị hợp lệ cho cover
+        cover: 'https://placehold.co/500x300/png' , // TODO: Cần xử lý cover thực tế sau
         createdBy: userId
-      })
+      };
+      // Xóa trường type vì schema template không có
+      delete templateData.type;
+
+      await createTemplateService(templateData);
     }
 
+    console.log('[boardController.createNew] About to send response:', createdBoard);
     // Có kết quả thì trả về phía Client
     res.status(StatusCodes.CREATED).json(createdBoard)
   } catch (error) { next(error) }

@@ -57,6 +57,7 @@ const validateBeforeCreate = async (data) => {
 
 const createNew = async (userId, data) => {
   try {
+    console.log('Data received in boardModel.createNew:', data);
     const validData = await validateBeforeCreate(data)
     const newBoardToAdd = {
       ...validData,

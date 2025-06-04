@@ -19,7 +19,7 @@ import cookieParser from 'cookie-parser'
 import http from 'http'
 import socketIo from 'socket.io'
 import { inviteUserToBoardSocket } from '~/sockets/inviteUserToBoardSocket'
-import templateRoutes from './routes/v1/templateRoutes'
+
 
 const START_SERVER = () => {
   const app = express()
@@ -43,8 +43,6 @@ const START_SERVER = () => {
   // Use APIs V1
   app.use('/v1', APIs_V1)
 
-  // Routes
-  app.use('/api/v1/templates', templateRoutes)
 
   // Middleware xử lý lỗi tập trung
   app.use(errorHandlingMiddleware)

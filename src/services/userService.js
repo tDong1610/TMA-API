@@ -8,8 +8,7 @@ import { WEBSITE_DOMAIN } from '~/utils/constants'
 import { env } from '~/config/environment'
 import { JwtProvider } from '~/providers/JwtProvider'
 import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
-import { Resend } from 'resend'
-import { emailService } from './emailService'
+
 
 // Kiểm tra API key trước khi khởi tạo Resend
 if (!env.RESEND_API_KEY) {
@@ -17,7 +16,6 @@ if (!env.RESEND_API_KEY) {
   process.exit(1)
 }
 
-const resend = new Resend(env.RESEND_API_KEY)
 
 const createNew = async (reqBody) => {
   try {

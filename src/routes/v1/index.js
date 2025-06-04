@@ -11,7 +11,8 @@ import { columnRoute } from '~/routes/v1/columnRoute'
 import { cardRoute } from '~/routes/v1/cardRoute'
 import { userRoute } from '~/routes/v1/userRoute'
 import { invitationRoute } from '~/routes/v1/invitationRoute'
-import templateRoutes from '~/routes/v1/templateRoutes'
+import { templateRoute } from '~/routes/v1/templateRoute'
+
 
 const Router = express.Router()
 
@@ -36,6 +37,7 @@ Router.use('/users', userRoute)
 Router.use('/invitations', invitationRoute)
 
 /** Template APIs */
-Router.use('/templates', templateRoutes)
+Router.use('/templates', templateRoute)
+
 
 export const APIs_V1 = Router

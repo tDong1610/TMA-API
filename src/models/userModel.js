@@ -5,7 +5,7 @@
 import Joi from 'joi'
 import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
-import { EMAIL_RULE, EMAIL_RULE_MESSAGE } from '~/utils/validators'
+import { EMAIL_RULE, EMAIL_RULE_MESSAGE, OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 // Define tạm 2 roles cho user, tùy việc mở rộng dự án như thế nào mà mọi người có thể thêm role tùy ý sao cho phù hợp sau.
 const USER_ROLES = {
@@ -32,6 +32,8 @@ const USER_COLLECTION_SCHEMA = Joi.object({
   otpExpires: Joi.date().timestamp('javascript').default(null).strip(),
   otpAttempts: Joi.number().default(0).strip(),
   lastOtpSent: Joi.date().timestamp('javascript').default(null).strip(),
+
+  templates: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -83,6 +85,34 @@ const update = async (userId, updateData) => {
     )
     return result
   } catch (error) { throw new Error(error) }
+}
+
+const pushTemplateId = async (userId, templateId) => {
+  try {
+    console.log(`[userModel.pushTemplateId] Attempting to push template ID ${templateId} to user ${userId}`);
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { $push: { templates: new ObjectId(templateId) } },
+      { returnDocument: 'after' }
+    );
+    return result;
+  } catch (error) { throw error; }
+}
+
+const pullTemplateId = async (userId, templateId) => {
+  try {
+    console.log(`[userModel.pullTemplateId] Attempting to remove template ID ${templateId} from user ${userId} list.`);
+    const result = await GET_DB().collection(USER_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(userId) },
+      { $pull: { templates: new ObjectId(templateId) } },
+      { returnDocument: 'after' }
+    );
+    console.log(`[userModel.pullTemplateId] findOneAndUpdate result: ${JSON.stringify(result)}`);
+    return result;
+  } catch (error) {
+    console.error(`[userModel.pullTemplateId] Error removing template ID ${templateId} from user ${userId} list:`, error);
+    throw error;
+  }
 }
 
 const updateOTP = async (userId, otp, otpExpires) => {
@@ -142,6 +172,8 @@ export const userModel = {
   findOneById,
   findOneByEmail,
   update,
+  pushTemplateId,
+  pullTemplateId,
   updateOTP,
   incrementOtpAttempts,
   verifyUser

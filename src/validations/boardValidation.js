@@ -10,6 +10,7 @@ import { BOARD_TYPES } from '~/utils/constants'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 
 const createNew = async (req, res, next) => {
+  console.log('[boardValidation.createNew] req.body:', req.body);
   /**
    * Note (video 52): Mặc định chúng ta không cần phải custom message ở phía BE làm gì vì để cho Front-end tự validate và custom message phía FE cho đẹp.
    * Back-end chỉ cần validate Đảm Bảo Dữ Liệu Chuẩn Xác, và trả về message mặc định từ thư viện là được.
@@ -25,12 +26,6 @@ const createNew = async (req, res, next) => {
       'string.trim': 'Title must not have leading or trailing whitespace (trungquandev)'
     }),
     description: Joi.string().required().min(3).max(255).trim().strict(),
-
-    /**
-     * Tips: Thay vì gọi lần lượt tất cả type của board để cho vào hàm valid() thì có thể viết gọn lại bằng Object.values() kết hợp Spread Operator của JS. Cụ thể: .valid(...Object.values(BOARD_TYPES))
-     * Làm như trên thì sau này dù các bạn có thêm hay sửa gì vào cái BOARD_TYPES trong file constants thì ở những chỗ dùng Joi trong Model hay Validation cũng không cần phải đụng vào nữa. Tối ưu gọn gàng luôn.
-    */
-    // type: Joi.string().valid(BOARD_TYPES.PUBLIC, BOARD_TYPES.PRIVATE).required(),
     type: Joi.string().required().valid(...Object.values(BOARD_TYPES))
   })
 
